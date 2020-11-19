@@ -1,25 +1,43 @@
-import logo from './logo.svg';
+import React, {useState, useEffect} from 'react' ;
 import './App.css';
+import {createFFmpeg, fetchFile} from '@ffmpeg/ffmpeg' ;
+
+const ffmpeg = createFFmpeg({log: true}) ;
 
 function App() {
-  return (
+
+  const [ready, setReady] = useState(false) ;  
+  const [video, setVideo] = useState() ;
+  const [gif, setGif] = useState() ;
+
+  const loadBinary = async () => {
+    await ffmpeg.load() ;
+    setReady(true) ;
+  }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+
+  useEffect(() => {
+    loadBinary() ;
+  }, [])
+
+  const convertToGif = async () => {
+    ffmpeg.FS('writeFile', 'test.mp4', await fetchFile(video)) ;
+    await ffmpeg.run('-i', 'test.mp4', '-t', '2.5', '-ss', '2.0', '-f', 'gif', 'out.gif') ;
+    const dataBlob = ffmpeg.FS('readFile', 'out.gif') ;
+    const fileUrl = URL.createObjectURL(new Blob([dataBlob.buffer], { type: 'image/gif' }));
+    setGif(fileUrl) ;
+  }
+
+  return ready ? (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+
+      {video && <video controls width="40%" src={URL.createObjectURL(video)}> </video> }
+      <input type="file" onChange={(e) => setVideo(e.target.files?.item(0))} />
+      <h3>Results:</h3>
+      <button onClick={convertToGif}>Convert to GIF</button>
+      {gif ? <img src={gif} width='40%' alt=""/> : (<p>Select Video and click 'Convet to GIF'</p>) }
     </div>
-  );
+  ) :
+  (<p>Loading...</p>);
 }
 
 export default App;
